@@ -4,6 +4,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -124,15 +125,27 @@ public class SplashActivity extends AppCompatActivity {
                 enterHome();
             }
         });
+
+        //点击取消时间监听
+        builder.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                //即使用户点击取消,也需要让其进入应用主界面
+                enterHome();
+                dialog.dismiss();
+            }
+        });
         builder.show();
     }
 
-
+    /**
+     * 下载apk
+     */
     private void downloadApk() {
         //apk下载链接地址,放置apk的所在路径
 
         // 1.判断sk卡是否可用,是否挂载上
-        if (true) {
+        if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             //2.获取sd路径
             ToastUtil.show(getApplicationContext(),"开始下载");
             String path = Environment.getExternalStorageDirectory().getAbsolutePath() +
@@ -146,6 +159,7 @@ public class SplashActivity extends AppCompatActivity {
                     // 下载成功
                     Log.i(TAG, "下载成功");
                     File file = responseInfo.result;
+                    installApk(file);
                 }
 
                 @Override
@@ -171,7 +185,33 @@ public class SplashActivity extends AppCompatActivity {
                 }
             });
         }
-        ToastUtil.show(getApplicationContext(),"没开始下载");
+    }
+
+    /**
+     * 安装apk
+     * @param file  安装文件
+     */
+    private void installApk(File file) {
+        //系统应用界面,源码安装apk入口
+        Intent intent = new Intent("android.intent.action.VIEW");
+        intent.addCategory("android.intent.category.DEFAULT");
+/*
+        //文件作为数据源
+        intent.setData(Uri.fromFile(file));
+        //设置安装的类型
+        intent.setType("application/vnd.android.package-archive");
+*/
+        // 相当于上面两句
+        intent.setDataAndType(Uri.fromFile(file),"application/vnd.android.package-archive");
+//        startActivity(intent);
+        startActivityForResult(intent, 0);
+    }
+
+    //开启一个activity后,返回结果调用的方法
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        enterHome();
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     /**
@@ -202,7 +242,7 @@ public class SplashActivity extends AppCompatActivity {
     }
 
     /**
-     * 检查版本更新
+     * 版本更新
      */
     private void checkVersion() {
 
@@ -215,7 +255,7 @@ public class SplashActivity extends AppCompatActivity {
                 long startTime = System.currentTimeMillis();
                 try {
                     // 1.封装url地址 http://10.0.2.2:8080/update11.json
-                    URL url = new URL("http://10.0.2.2:8080/update11.json");
+                    URL url = new URL("http://119.29.248.139:8080/safe/update11.json");
                     // 2. 开启一个链接
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     //3.设置常见请求参数(请求头)
